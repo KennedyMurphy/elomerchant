@@ -16,7 +16,7 @@ First, installs the required python libraries for this project. Then uses the [k
 
 `make database`
 ------------
-Populates a Postgresql data base with the data pulled via the `make data` command. For more info on Python3 and Postgresql, read [this](https://www.codementor.io/engineerapart/getting-started-with-postgresql-on-mac-osx-are8jcopb) blog post. The assumption is that there already is an empty database with an appropriate user setup prior to running this command. 
+Populates a Postgresql data base with the data pulled via the `make data` command. For more info on Python3 and Postgresql, read this [Code Mentor Post](https://www.codementor.io/engineerapart/getting-started-with-postgresql-on-mac-osx-are8jcopb). For info on how to import CSVs to Postgresql, read this [Postgresql Tutorial](http://www.postgresqltutorial.com/import-csv-file-into-posgresql-table/). The assumption is that there already is an empty database with an appropriate user setup prior to running this command. 
 
 Project Organization
 ==============================
