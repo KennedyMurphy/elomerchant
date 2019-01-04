@@ -1,10 +1,25 @@
 ELOMerchant
 ==============================
 
-Category recommendation competition from Kaggle.
+Category recommendation competition from [Kaggle](https://www.kaggle.com/c/elo-merchant-category-recommendation).
+
+Commands
+==============================
+
+`make requirements`
+------------
+Installs the required python libraries.
+
+`make data`
+------------
+First, installs the required python libraries for this project. Then uses the [kaggle](https://github.com/Kaggle/kaggle-api) API to pull rerequired data sets and save them to the directory `data/raw/`.
+
+`make database`
+------------
+Populates a Postgresql data base with the data pulled via the `make data` command. For more info on Python3 and Postgresql, read [this](https://www.codementor.io/engineerapart/getting-started-with-postgresql-on-mac-osx-are8jcopb) blog post. The assumption is that there already is an empty database with an appropriate user setup prior to running this command. 
 
 Project Organization
-------------
+==============================
 
     ├── LICENSE
     ├── Makefile           <- Makefile with commands like `make data` or `make train`
