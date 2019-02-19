@@ -1,0 +1,86 @@
+""" Trains a multilayer perceptron using one-hot encoding
+    data generated using build_features.build_card_one_hot.
+"""
+import numpy as np
+import mxnet as mx
+import logging
+from src.features import build_features
+from mxnet import nd, autograd, gluon
+
+# Define arguments to be passed to model
+epochs=10
+batch_size=64
+num_hidden=64
+num_inputs=784
+num_outputs=10
+num_examples=60000
+
+
+log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+logging.basicConfig(level=logging.INFO, format=log_fmt)
+logger = logging.getLogger(__name__)
+
+logger.info("Setting contexts")
+ctx = mx.gpu() if mx.test_utils.list_gpus() else mx.cpu()
+data_ctx = ctx
+model_ctx = ctx
+
+# Read in the data
+train_data = build_features.build_card_one_hot()
+
+logger.info("Defining data loader")
+# X = train_data[[c for c in train_data.columns if c != 'target']].values
+# y = train_data.target.values.reshape(-1, 1)
+
+# train_data = gluon.data.DataLoader(gluon.data.ArrayDataset(X, y), 
+#                                     batch_size=batch_size, shuffle=True)
+
+def transform(data, label):
+    return data.astype(np.float32)/255, label.astype(np.float32)
+
+train_data = mx.gluon.data.DataLoader(mx.gluon.data.vision.MNIST(train=True, transform=transform),
+                                      batch_size, shuffle=True)
+
+logger.info("Defining MLP")
+net = gluon.nn.Sequential()
+with net.name_scope():
+    net.add(gluon.nn.Dense(num_hidden, activation="relu"))
+    net.add(gluon.nn.Dense(num_hidden, activation="relu"))
+    net.add(gluon.nn.Dense(num_outputs))
+
+# Parameter initialization
+net.collect_params().initialize(mx.init.Normal(sigma=.1), ctx=model_ctx)
+
+# Define loss function
+softmax_cross_entropy = gluon.loss.SoftmaxCrossEntropyLoss()
+
+# Optimizer
+trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': .01})
+
+# Evaluation metric -- Root Mean Squared Error
+train_accuracy = mx.metric.RMSE()
+# test_accuracy = mx.metric.RMSE()
+
+logger.info("Starting training loop")
+for e in range(epochs):
+    cumulative_loss = 0
+
+    for i, (data, label) in enumerate(train_data):
+        data = data.as_in_context(model_ctx).reshape((-1, num_inputs))
+        label = label.as_in_context(model_ctx)
+
+        with autograd.record():
+            output = net(data)
+            loss = softmax_cross_entropy(output, label)
+        
+        loss.backward()
+
+        trainer.step(data.shape[0])
+        cumulative_loss += nd.sum(loss).asscalar()
+    
+    # Calculate training error
+    output = net(data)
+    train_accuracy.update(label, output)
+    
+    logger.info("Epoch %s. Loss: %s, Train_acc %s, Test_acc TBD" %
+                (e, cumulative_loss/num_examples, train_accuracy.get()))
