@@ -1,6 +1,7 @@
 """ Trains a multilayer perceptron using one-hot encoding
     data generated using build_features.build_card_one_hot.
 """
+import pandas as pd
 import numpy as np
 import mxnet as mx
 import logging
@@ -25,21 +26,27 @@ data_ctx = ctx
 model_ctx = ctx
 
 # Read in the data
-train_data = build_features.build_card_one_hot()
+train_data, test_data = build_features.build_card_one_hot()
 
 # Cast int64 to float64
 for col in train_data.select_dtypes('int64').columns:
-    train_data[col] = train_data[col].astype('float32')
+    train_data[col] = train_data[col].astype(np.float32)
+    
+    assert col in test_data.columns
+    test_data[col] = test_data[col].astype(np.float32)
 
 
 logger.info("Defining data loader")
-X = train_data[[c for c in train_data.columns if c != 'target']].values
-y = train_data.target.values.reshape(-1, 1)
+X_train = train_data[[c for c in train_data.columns if c != 'target']].values
+y_train = train_data.target.values.reshape(-1, 1)
+
+X_test = test_data[[c for c in test_data.columns if c != 'target']].values 
+X_test = gluon.data.ArrayDataset(X_test)
 
 # Setup the number of inputs
-num_inputs=X.shape[1]
+num_inputs=X_train.shape[1]
 
-train_data = gluon.data.DataLoader(gluon.data.ArrayDataset(X, y), 
+train_data = gluon.data.DataLoader(gluon.data.ArrayDataset(X_train, y_train), 
                                     batch_size=batch_size, shuffle=True)
 
 logger.info("Defining MLP")
@@ -58,13 +65,11 @@ softmax_cross_entropy = gluon.loss.SoftmaxCrossEntropyLoss()
 # Optimizer
 trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': .01})
 
-# Evaluation metric -- Root Mean Squared Error
-train_accuracy = mx.metric.RMSE()
-# test_accuracy = mx.metric.RMSE()
-
 logger.info("Starting training loop")
 for e in range(epochs):
     cumulative_loss = 0
+    # Evaluation metric -- Root Mean Squared Error
+    train_accuracy = mx.metric.RMSE()
 
     for i, (data, label) in enumerate(train_data):
         data = data.as_in_context(model_ctx).reshape((-1, num_inputs))
@@ -80,8 +85,20 @@ for e in range(epochs):
         cumulative_loss += nd.sum(loss).asscalar()
     
     # Calculate training error
-    output = net(data)
-    train_accuracy.update(label, output)
+    for i, (data, label) in enumerate(train_data):
+        data = data.as_in_context(model_ctx).reshape((-1, num_inputs))
+        label = label.as_in_context(model_ctx)
+        
+        output = net(data)
+        train_accuracy.update(label, output)
     
-    logger.info("Epoch %s. Loss: %s, Train_acc %s, Test_acc TBD" %
+    logger.info("Epoch %s. Loss: %s, Train_acc %s" %
                 (e, cumulative_loss/num_examples, train_accuracy.get()))
+
+# logger.info("Creating test set predictions")
+# df_test = pd.read_csv('data/raw/test.csv')
+# df_test = df_test['card_id']
+# test_output = net(X_test)
+# df_test['target'] = test_output
+
+# df_test.to_csv("data/processed/MLP Results.csv")
