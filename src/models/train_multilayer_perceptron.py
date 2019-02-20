@@ -11,7 +11,6 @@ from mxnet import nd, autograd, gluon
 epochs=10
 batch_size=64
 num_hidden=64
-num_inputs=784
 num_outputs=10
 num_examples=60000
 
@@ -28,18 +27,20 @@ model_ctx = ctx
 # Read in the data
 train_data = build_features.build_card_one_hot()
 
+# Cast int64 to float64
+for col in train_data.select_dtypes('int64').columns:
+    train_data[col] = train_data[col].astype('float32')
+
+
 logger.info("Defining data loader")
-# X = train_data[[c for c in train_data.columns if c != 'target']].values
-# y = train_data.target.values.reshape(-1, 1)
+X = train_data[[c for c in train_data.columns if c != 'target']].values
+y = train_data.target.values.reshape(-1, 1)
 
-# train_data = gluon.data.DataLoader(gluon.data.ArrayDataset(X, y), 
-#                                     batch_size=batch_size, shuffle=True)
+# Setup the number of inputs
+num_inputs=X.shape[1]
 
-def transform(data, label):
-    return data.astype(np.float32)/255, label.astype(np.float32)
-
-train_data = mx.gluon.data.DataLoader(mx.gluon.data.vision.MNIST(train=True, transform=transform),
-                                      batch_size, shuffle=True)
+train_data = gluon.data.DataLoader(gluon.data.ArrayDataset(X, y), 
+                                    batch_size=batch_size, shuffle=True)
 
 logger.info("Defining MLP")
 net = gluon.nn.Sequential()
