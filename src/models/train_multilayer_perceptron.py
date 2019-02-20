@@ -11,7 +11,7 @@ from mxnet import nd, autograd, gluon
 epochs=10
 batch_size=64
 num_hidden=64
-num_outputs=10
+num_outputs=1
 num_examples=60000
 
 
