@@ -1,4 +1,4 @@
-""" Trains a multilayer perceptron using one-hot encoding
+""" Trains a Radial Basis Network using one-hot encoding
     data generated using build_features.build_card_one_hot.
 """
 import pandas as pd
@@ -9,7 +9,7 @@ from src.features import build_features
 from mxnet import nd, autograd, gluon
 
 # Define arguments to be passed to model
-epochs=1
+epochs=20
 batch_size=64
 num_hidden=64
 num_outputs=1
@@ -53,13 +53,13 @@ train_data = gluon.data.DataLoader(gluon.data.ArrayDataset(X_train, y_train),
 test_data = gluon.data.DataLoader(gluon.data.ArrayDataset(X_test), 
                                     batch_size=batch_size, shuffle=False)
 
-logger.info("Defining MLP")
+logger.info("Defining Radial Basis Network")
 net = gluon.nn.Sequential()
 with net.name_scope():
-    net.add(gluon.nn.Dense(num_hidden, activation="relu"))
-    net.add(gluon.nn.Dense(num_hidden, activation="relu"))
+    net.add(gluon.nn.Dense(num_hidden))  # Linear activation functions
+    net.add(gluon.nn.Dense(num_hidden))  # Linear activation functions
     net.add(gluon.nn.Dense(num_outputs))
-
+    
 # Parameter initialization
 net.collect_params().initialize(mx.init.Normal(sigma=.1), ctx=model_ctx)
 
@@ -79,13 +79,12 @@ for e in range(epochs):
         data = data.as_in_context(model_ctx).reshape((-1, num_inputs))
         label = label.as_in_context(model_ctx)
 
-        with autograd.record():
+        with autograd.record(train_mode=True):
             output = net(data)
             loss = softmax_cross_entropy(output, label)
         
         loss.backward()
-
-        trainer.step(data.shape[0])
+        trainer.step(batch_size)
         cumulative_loss += nd.sum(loss).asscalar()
     
     # Calculate training error
@@ -100,14 +99,19 @@ for e in range(epochs):
                 (e, cumulative_loss/num_examples, train_accuracy.get()))
 
 logger.info("Creating test set predictions")
-result_rows = []
+entry_counter = 0
+
+df_test = pd.DataFrame()
 
 for i, data in enumerate(test_data):
     data = data.as_in_context(model_ctx).reshape((-1, num_inputs))
     output = net(data)
 
-    result_rows.append({'card_id': test_ids[i], 'target': output})
+    df_test = df_test.append(pd.DataFrame(
+        {'card_id': test_ids[entry_counter:(entry_counter + len(output))], 
+        'target': output.asnumpy().reshape(-1)}
+    ))
 
-df_test = pd.DataFrame(result_rows)
+    entry_counter += len(output)
 
-df_test.to_csv("data/processed/Radial Basis Network.csv")
+df_test.to_csv("data/processed/Radial Basis Network.csv", index=False)
