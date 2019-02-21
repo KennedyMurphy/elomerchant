@@ -9,7 +9,7 @@ from src.features import build_features
 from mxnet import nd, autograd, gluon
 
 # Define arguments to be passed to model
-epochs=10
+epochs=1
 batch_size=64
 num_hidden=64
 num_outputs=1
@@ -41,13 +41,17 @@ X_train = train_data[[c for c in train_data.columns if c != 'target']].values
 y_train = train_data.target.values.reshape(-1, 1)
 
 X_test = test_data[[c for c in test_data.columns if c != 'target']].values 
-X_test = gluon.data.ArrayDataset(X_test)
+test_ids = test_data.index.values
 
 # Setup the number of inputs
 num_inputs=X_train.shape[1]
 
+# Setup iterable data sets
 train_data = gluon.data.DataLoader(gluon.data.ArrayDataset(X_train, y_train), 
                                     batch_size=batch_size, shuffle=True)
+
+test_data = gluon.data.DataLoader(gluon.data.ArrayDataset(X_test), 
+                                    batch_size=batch_size, shuffle=False)
 
 logger.info("Defining MLP")
 net = gluon.nn.Sequential()
@@ -95,10 +99,15 @@ for e in range(epochs):
     logger.info("Epoch %s. Loss: %s, Train_acc %s" %
                 (e, cumulative_loss/num_examples, train_accuracy.get()))
 
-# logger.info("Creating test set predictions")
-# df_test = pd.read_csv('data/raw/test.csv')
-# df_test = df_test['card_id']
-# test_output = net(X_test)
-# df_test['target'] = test_output
+logger.info("Creating test set predictions")
+result_rows = []
 
-# df_test.to_csv("data/processed/MLP Results.csv")
+for i, data in enumerate(test_data):
+    data = data.as_in_context(model_ctx).reshape((-1, num_inputs))
+    output = net(data)
+
+    result_rows.append({'card_id': test_ids[i], 'target': output})
+
+df_test = pd.DataFrame(result_rows)
+
+df_test.to_csv("data/processed/Radial Basis Network.csv")
