@@ -1,4 +1,4 @@
-""" Trains a Radial Basis Network using one-hot encoding
+""" Trains a perceptron (linear regression) using one-hot encoding
     data generated using build_features.build_card_one_hot.
 """
 import pandas as pd
@@ -9,9 +9,9 @@ from src.features import build_features
 from mxnet import nd, autograd, gluon
 
 # Define arguments to be passed to model
-epochs=20
+epochs=10
 batch_size=64
-num_hidden=64
+learning_rate=0.01
 num_outputs=1
 num_examples=60000
 
@@ -29,7 +29,8 @@ model_ctx = ctx
 train_data, test_data = build_features.build_card_one_hot()
 
 # Cast int64 to float64
-for col in train_data.select_dtypes('int64').columns:
+train_data['target'] = train_data.target.astype(np.float32)
+for col in train_data.select_dtypes('int').columns:
     train_data[col] = train_data[col].astype(np.float32)
     
     assert col in test_data.columns
@@ -45,6 +46,7 @@ test_ids = test_data.index.values
 
 # Setup the number of inputs
 num_inputs=X_train.shape[1]
+num_hidden=num_inputs * 2
 
 # Setup iterable data sets
 train_data = gluon.data.DataLoader(gluon.data.ArrayDataset(X_train, y_train), 
@@ -53,21 +55,20 @@ train_data = gluon.data.DataLoader(gluon.data.ArrayDataset(X_train, y_train),
 test_data = gluon.data.DataLoader(gluon.data.ArrayDataset(X_test), 
                                     batch_size=batch_size, shuffle=False)
 
-logger.info("Defining Radial Basis Network")
+logger.info("Defining Perceptron")
 net = gluon.nn.Sequential()
 with net.name_scope():
-    net.add(gluon.nn.Dense(num_hidden))  # Linear activation functions
-    net.add(gluon.nn.Dense(num_hidden))  # Linear activation functions
     net.add(gluon.nn.Dense(num_outputs))
     
 # Parameter initialization
 net.collect_params().initialize(mx.init.Normal(sigma=.1), ctx=model_ctx)
 
 # Define loss function
-softmax_cross_entropy = gluon.loss.SoftmaxCrossEntropyLoss()
+# loss_function = gluon.loss.SoftmaxCrossEntropyLoss()
+loss_function = gluon.loss.L2Loss()
 
 # Optimizer
-trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': .01})
+trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': learning_rate})
 
 logger.info("Starting training loop")
 for e in range(epochs):
@@ -81,7 +82,7 @@ for e in range(epochs):
 
         with autograd.record(train_mode=True):
             output = net(data)
-            loss = softmax_cross_entropy(output, label)
+            loss = loss_function(output, label)
         
         loss.backward()
         trainer.step(batch_size)
