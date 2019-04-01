@@ -9,7 +9,7 @@ from src.features import build_features
 from mxnet import nd, autograd, gluon
 
 # Define arguments to be passed to model
-epochs=10
+epochs=100
 batch_size=64
 learning_rate=0.01
 num_outputs=1
@@ -26,22 +26,23 @@ data_ctx = ctx
 model_ctx = ctx
 
 # Read in the data
-train_data, test_data = build_features.build_card_one_hot()
+train_data, test_data = build_features.build_transaction_data()
+target_data = pd.read_csv('data/raw/train.csv', usecols=['target'], dtype=np.float32, nrows=1000)
 
 # Cast int64 to float64
-train_data['target'] = train_data.target.astype(np.float32)
-for col in train_data.select_dtypes('int').columns:
+for col in train_data.select_dtypes(['int', 'float']).columns:
     train_data[col] = train_data[col].astype(np.float32)
     
     assert col in test_data.columns
     test_data[col] = test_data[col].astype(np.float32)
 
+target_data['target'] = target_data.target.astype(np.float32)
 
 logger.info("Defining data loader")
-X_train = train_data[[c for c in train_data.columns if c != 'target']].values
-y_train = train_data.target.values.reshape(-1, 1)
+X_train = train_data[[c for c in train_data.columns]].values
+y_train = target_data.target.values.reshape(-1, 1)
 
-X_test = test_data[[c for c in test_data.columns if c != 'target']].values 
+X_test = test_data[[c for c in test_data.columns]].values 
 test_ids = test_data.index.values
 
 # Setup the number of inputs
