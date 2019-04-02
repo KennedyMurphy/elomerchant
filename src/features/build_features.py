@@ -44,6 +44,26 @@ TRANSACTION_TYPES = {
     'subsector_id': ft.variable_types.Categorical
 }
 
+def normalize_series(series, min_max):
+    """ Normalizes a series where all values between
+        0 and 1. Values can exceed 1 if they exceed the provided
+        max in the min_max tuple.
+
+        :param series:      Pandas series to normalize
+        :param min_max:     Tuple of minimum and maximum value for
+                                normalization.
+        
+        :return:            Normalized series
+    """
+
+    if min_max is None:
+        min_max = series.agg(['min', 'max']).values
+    
+    assert min_max[0] < min_max[1]
+    series = (series - min_max[0]) / (min_max[1] - min_max[0])
+
+    return series
+
 def build_card_one_hot():
     """ Reads in the raw data from train.csv and creates
         one-hot encodings for the feature and date fields.
@@ -103,7 +123,7 @@ def build_transaction_data():
 
     logger = logging.getLogger(__name__)
     logger.info("Reading in card data")
-    customer_df = pd.read_csv("data/raw/train.csv", nrows=1000)
+    customer_df = pd.read_csv("data/raw/train.csv")
     customer_df['first_active_month'] = pd.to_datetime(customer_df['first_active_month'] + "-01")
 
     customer_df.drop(columns='target', inplace=True)
@@ -147,7 +167,7 @@ def build_transaction_data():
     saved_features = ft.load_features('feature_definitions')
 
     logger.info("Loading test data")
-    customer_df = pd.read_csv("data/raw/test.csv", nrows=1000)
+    customer_df = pd.read_csv("data/raw/test.csv")
     customer_df['first_active_month'] = pd.to_datetime(customer_df['first_active_month'] + "-01")
 
     logger.info("Creating testing entity set")
@@ -170,5 +190,26 @@ def build_transaction_data():
     es_test = es_test.add_relationship(relationship)
 
     test_feature_matrix_enc = ft.calculate_feature_matrix(saved_features, es_test)
+
+    for col in train_feature_matrix_enc.columns:
+        logger.debug(f"Normalizing feature [{col}]")
+        old_min, old_max = train_feature_matrix_enc[col].agg(['min', 'max'])
+
+        if (old_min == old_max):
+            logger.debug(f"Droping feature [{col}] due to lack of variation")
+            train_feature_matrix_enc.drop(columns=col)
+            test_feature_matrix_enc.drop(columns=col)
+
+            continue
+
+        train_feature_matrix_enc[col] = normalize_series(
+            series=train_feature_matrix_enc[col], 
+            min_max=(old_min, old_max))
+
+        assert col in test_feature_matrix_enc.columns
+
+        test_feature_matrix_enc[col] = normalize_series(
+            series=test_feature_matrix_enc[col], 
+            min_max=(old_min, old_max))
 
     return train_feature_matrix_enc, test_feature_matrix_enc

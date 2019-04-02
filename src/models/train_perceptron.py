@@ -9,7 +9,7 @@ from src.features import build_features
 from mxnet import nd, autograd, gluon
 
 # Define arguments to be passed to model
-epochs=100
+epochs=50
 batch_size=64
 learning_rate=0.01
 num_outputs=1
@@ -27,7 +27,7 @@ model_ctx = ctx
 
 # Read in the data
 train_data, test_data = build_features.build_transaction_data()
-target_data = pd.read_csv('data/raw/train.csv', usecols=['target'], dtype=np.float32, nrows=1000)
+target_data = pd.read_csv('data/raw/train.csv', usecols=['target'], dtype=np.float32)
 
 # Cast int64 to float64
 for col in train_data.select_dtypes(['int', 'float']).columns:
@@ -40,7 +40,7 @@ target_data['target'] = target_data.target.astype(np.float32)
 
 logger.info("Defining data loader")
 X_train = train_data[[c for c in train_data.columns]].values
-y_train = target_data.target.values.reshape(-1, 1)
+y_train = target_data.target.values
 
 X_test = test_data[[c for c in test_data.columns]].values 
 test_ids = test_data.index.values
@@ -57,12 +57,13 @@ test_data = gluon.data.DataLoader(gluon.data.ArrayDataset(X_test),
                                     batch_size=batch_size, shuffle=False)
 
 logger.info("Defining Perceptron")
-net = gluon.nn.Sequential()
-with net.name_scope():
-    net.add(gluon.nn.Dense(num_outputs))
+# net = gluon.nn.Sequential()
+# with net.name_scope():
+#     net.add(gluon.nn.Dense(num_outputs))
+net = gluon.nn.Dense(1)
     
 # Parameter initialization
-net.collect_params().initialize(mx.init.Normal(sigma=.1), ctx=model_ctx)
+net.collect_params().initialize(mx.init.Normal(sigma=1.), ctx=model_ctx)
 
 # Define loss function
 # loss_function = gluon.loss.SoftmaxCrossEntropyLoss()
@@ -78,7 +79,7 @@ for e in range(epochs):
     train_accuracy = mx.metric.RMSE()
 
     for i, (data, label) in enumerate(train_data):
-        data = data.as_in_context(model_ctx).reshape((-1, num_inputs))
+        data = data.as_in_context(model_ctx)
         label = label.as_in_context(model_ctx)
 
         with autograd.record(train_mode=True):
@@ -116,4 +117,4 @@ for i, data in enumerate(test_data):
 
     entry_counter += len(output)
 
-df_test.to_csv("data/processed/Radial Basis Network.csv", index=False)
+df_test.to_csv("data/processed/Perceptron.csv", index=False)
