@@ -197,8 +197,8 @@ def build_transaction_data():
 
         if (old_min == old_max):
             logger.debug(f"Droping feature [{col}] due to lack of variation")
-            train_feature_matrix_enc.drop(columns=col)
-            test_feature_matrix_enc.drop(columns=col)
+            train_feature_matrix_enc.drop(columns=col, inplace=True)
+            test_feature_matrix_enc.drop(columns=col, inplace=True)
 
             continue
 
