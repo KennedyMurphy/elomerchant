@@ -212,4 +212,10 @@ def build_transaction_data():
             series=test_feature_matrix_enc[col], 
             min_max=(old_min, old_max))
 
+    logger.info("Dropping SKEW features.")
+    # TODO: Determine why these have lower counts than other features
+    drop_cols = [c for c in train_feature_matrix_enc.columns if "SKEW" in c]
+    train_feature_matrix_enc.drop(columns=drop_cols, inplace=True)
+    test_feature_matrix_enc.drop(columns=drop_cols, inplace=True)
+
     return train_feature_matrix_enc, test_feature_matrix_enc

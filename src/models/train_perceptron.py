@@ -3,10 +3,11 @@
 """
 import pandas as pd
 import numpy as np
-import mxnet as mx
 import logging
+import gc
 from src.features import build_features
-from mxnet import nd, autograd, gluon
+from keras.models import Sequential
+from keras.layers import Dense
 
 # Define arguments to be passed to model
 epochs=50
@@ -20,12 +21,8 @@ log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.INFO, format=log_fmt)
 logger = logging.getLogger(__name__)
 
-logger.info("Setting contexts")
-ctx = mx.gpu() if mx.test_utils.list_gpus() else mx.cpu()
-data_ctx = ctx
-model_ctx = ctx
-
 # Read in the data
+logger.info("Loading data")
 train_data, test_data = build_features.build_transaction_data()
 target_data = pd.read_csv('data/raw/train.csv', usecols=['target'], dtype=np.float32)
 
@@ -38,7 +35,7 @@ for col in train_data.select_dtypes(['int', 'float']).columns:
 
 target_data['target'] = target_data.target.astype(np.float32)
 
-logger.info("Defining data loader")
+logger.info("Creating input matrices")
 X_train = train_data[[c for c in train_data.columns]].values
 y_train = target_data.target.values
 
@@ -49,72 +46,23 @@ test_ids = test_data.index.values
 num_inputs=X_train.shape[1]
 num_hidden=num_inputs * 2
 
-# Setup iterable data sets
-train_data = gluon.data.DataLoader(gluon.data.ArrayDataset(X_train, y_train), 
-                                    batch_size=batch_size, shuffle=True)
-
-test_data = gluon.data.DataLoader(gluon.data.ArrayDataset(X_test), 
-                                    batch_size=batch_size, shuffle=False)
+del train_data, test_data, target_data
+gc.collect()
 
 logger.info("Defining Perceptron")
-# net = gluon.nn.Sequential()
-# with net.name_scope():
-#     net.add(gluon.nn.Dense(num_outputs))
-net = gluon.nn.Dense(1)
-    
-# Parameter initialization
-net.collect_params().initialize(mx.init.Normal(sigma=1.), ctx=model_ctx)
+model = Sequential()
+model.add(Dense(batch_size, input_dim=num_inputs, kernel_initializer='normal', activation='relu'))
+model.add(Dense(num_outputs, kernel_initializer='normal'))
+# Compile model
+model.compile(optimizer='rmsprop', loss='mse')
 
-# Define loss function
-# loss_function = gluon.loss.SoftmaxCrossEntropyLoss()
-loss_function = gluon.loss.L2Loss()
+logger.info(f"Starting training process with epochs:{epochs} & batch size:{batch_size}")
+model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size)
 
-# Optimizer
-trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': learning_rate})
+logger.info(f"Creating predictions with batch size:{batch_size}")
+y_pred = model.predict(X_test, batch_size=batch_size, verbose=1)
 
-logger.info("Starting training loop")
-for e in range(epochs):
-    cumulative_loss = 0
-    # Evaluation metric -- Root Mean Squared Error
-    train_accuracy = mx.metric.RMSE()
-
-    for i, (data, label) in enumerate(train_data):
-        data = data.as_in_context(model_ctx)
-        label = label.as_in_context(model_ctx)
-
-        with autograd.record(train_mode=True):
-            output = net(data)
-            loss = loss_function(output, label)
-        
-        loss.backward()
-        trainer.step(batch_size)
-        cumulative_loss += nd.sum(loss).asscalar()
-    
-    # Calculate training error
-    for i, (data, label) in enumerate(train_data):
-        data = data.as_in_context(model_ctx).reshape((-1, num_inputs))
-        label = label.as_in_context(model_ctx)
-        
-        output = net(data)
-        train_accuracy.update(label, output)
-    
-    logger.info("Epoch %s. Loss: %s, Train_acc %s" %
-                (e, cumulative_loss/num_examples, train_accuracy.get()))
-
-logger.info("Creating test set predictions")
-entry_counter = 0
-
-df_test = pd.DataFrame()
-
-for i, data in enumerate(test_data):
-    data = data.as_in_context(model_ctx).reshape((-1, num_inputs))
-    output = net(data)
-
-    df_test = df_test.append(pd.DataFrame(
-        {'card_id': test_ids[entry_counter:(entry_counter + len(output))], 
-        'target': output.asnumpy().reshape(-1)}
-    ))
-
-    entry_counter += len(output)
+logger.info(f"Saving predictions")
+df_test = pd.DataFrame({'card_id': test_ids, 'target': y_pred.reshape(-1, )})
 
 df_test.to_csv("data/processed/Perceptron.csv", index=False)
