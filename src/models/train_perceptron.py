@@ -65,4 +65,10 @@ y_pred = model.predict(X_test, batch_size=batch_size, verbose=1)
 logger.info(f"Saving predictions")
 df_test = pd.DataFrame({'card_id': test_ids, 'target': y_pred.reshape(-1, )})
 
+if df_test.target.isnull().any():
+    null_count = df_test.target.isnull().sum()
+    logger.warning(f"Found {null_count} NaN preditions. Patching with 0...")
+    df_test.target.fillna(0, inplace=True)
+
+
 df_test.to_csv("data/processed/Perceptron.csv", index=False)
