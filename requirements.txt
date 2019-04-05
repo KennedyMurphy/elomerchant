@@ -91,7 +91,7 @@ nbconvert==5.4.0
 nbformat==4.4.0
 netaddr==0.7.19
 netifaces==0.10.9
-notebook==5.7.2
+notebook==5.7.8
 numpy==1.14.6
 os-service-types==1.5.0
 oslo.cache==1.32.0
@@ -139,7 +139,7 @@ python-keystoneclient==3.18.0
 python-mimeparse==1.6.0
 python-slugify==1.2.6
 pytz==2018.5
-PyYAML==3.13
+PyYAML==5.1
 pyzmq==17.1.2
 qtconsole==4.4.3
 repoze.lru==0.7
@@ -185,7 +185,7 @@ traitlets==4.3.2
 typed-ast==1.1.0
 Unidecode==1.0.22
 unittest2==1.1.0
-urllib3==1.22
+urllib3==1.24.1
 vine==1.2.0
 waitress==1.2.1
 wcwidth==0.1.7
