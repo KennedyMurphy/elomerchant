@@ -5,9 +5,11 @@ import pandas as pd
 import numpy as np
 import logging
 import gc
+from src.models import record_model
 from src.features import build_features
 from keras.models import Sequential
 from keras.layers import Dense
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 # Set up data dir
 data_dir = "data/processed/"
@@ -17,6 +19,14 @@ epochs=50
 batch_size=64
 learning_rate=0.01
 num_outputs=1
+
+metrics = {'MAE': mean_absolute_error, "MSE": mean_squared_error}
+
+recorder = record_model.ModelRecord(
+    record_file_path='models/model_log.csv',
+    metrics=metrics,
+    batch_size=batch_size, 
+    epochs=epochs)
 
 log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.INFO, format=log_fmt)
@@ -30,15 +40,6 @@ train_target = pd.read_csv(f"{data_dir}train_target.csv")
 
 train_feats.set_index("card_id", inplace=True)
 train_target.set_index("card_id", inplace=True)
-
-# # Cast int64 to float64
-# for col in train_data.select_dtypes(['int', 'float']).columns:
-#     train_data[col] = train_data[col].astype(np.float32)
-    
-#     assert col in test_data.columns
-#     test_data[col] = test_data[col].astype(np.float32)
-
-# target_data['target'] = target_data.target.astype(np.float32)
 
 logger.info("Creating input matrices")
 X_train = train_feats.values
@@ -62,12 +63,17 @@ logger.info(f"Starting training process with epochs:{epochs} & batch size:{batch
 model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size)
 
 ########################### Validation Cycle ###########################
-# logger.info("Loading validation data")
-# val_feats = pd.read_csv(f"{data_dir}validation_features.csv")
-# val_target = pd.read_csv(f"{data_dir}validation_target.csv")
+logger.info("Loading validation data")
+val_feats = pd.read_csv(f"{data_dir}validation_features.csv")
+val_target = pd.read_csv(f"{data_dir}validation_target.csv")
 
-# val_feats.set_index("card_id", inplace=True)
-# val_target.set_index("card_id", inplace=True)
+val_feats.set_index("card_id", inplace=True)
+val_target.set_index("card_id", inplace=True)
+
+X_val = val_feats.values
+y_val = val_target.values.reshape(-1)
+
+recorder.log(__name__, model, X_val, y_val)
 
 # del val_feats, val_target
 ########################### Prediction Cycle ###########################
