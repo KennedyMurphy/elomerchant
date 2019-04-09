@@ -93,4 +93,4 @@ if df_test.target.isnull().any():
     df_test.target.fillna(0, inplace=True)
 
 
-df_test.to_csv("data/processed/Perceptron.csv", index=False)
+df_test.to_csv("data/processed/FeedForward.csv", index=False)
