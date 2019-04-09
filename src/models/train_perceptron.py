@@ -11,6 +11,10 @@ from keras.models import Sequential
 from keras.layers import Dense
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
+# Feature selection
+from sklearn.linear_model import LinearRegression
+from sklearn.feature_selection import RFE
+
 # Set up data dir
 data_dir = "data/processed/"
 
@@ -19,6 +23,7 @@ epochs=50
 batch_size=64
 learning_rate=0.01
 num_outputs=1
+num_features=100
 
 metrics = {'MAE': mean_absolute_error, "MSE": mean_squared_error}
 
@@ -45,6 +50,14 @@ logger.info("Creating input matrices")
 X_train = train_feats.values
 y_train = train_target.values.reshape(-1)
 
+########################### Feature Selection ##########################
+regr = LinearRegression()
+selector = RFE(regr, num_features, step=1, verbose=0)
+selector.fit(X_train, y_train)
+
+usecols = ['card_id'] + [c for c in train_feats.columns[selector.support_]]
+X_train = X_train[:, selector.support_]
+
 # Setup the number of inputs
 num_inputs=X_train.shape[1]
 num_hidden=num_inputs * 2
@@ -64,7 +77,7 @@ model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size)
 
 ########################### Validation Cycle ###########################
 logger.info("Loading validation data")
-val_feats = pd.read_csv(f"{data_dir}validation_features.csv")
+val_feats = pd.read_csv(f"{data_dir}validation_features.csv", usecols=usecols)
 val_target = pd.read_csv(f"{data_dir}validation_target.csv")
 
 val_feats.set_index("card_id", inplace=True)
@@ -77,7 +90,7 @@ recorder.log(__name__, model, X_val, y_val)
 
 # del val_feats, val_target
 ########################### Prediction Cycle ###########################
-test_feats = pd.read_csv(f"{data_dir}test_features.csv")
+test_feats = pd.read_csv(f"{data_dir}test_features.csv", usecols=usecols)
 test_feats.set_index("card_id", inplace=True)
 
 X_test = test_feats.values

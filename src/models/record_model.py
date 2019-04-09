@@ -40,7 +40,7 @@ class ModelRecord():
 
         try:
             log_df = pd.read_csv(self.record_file_path)
-            log_df = log_df.append(pd.DataFrame(record, index=0), sort=True)
+            log_df = log_df.append(pd.DataFrame(record, index=[0]), sort=True)
         except FileNotFoundError:
             log_df = pd.DataFrame(record, index=[0])
 
