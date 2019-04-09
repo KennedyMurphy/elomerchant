@@ -52,8 +52,8 @@ num_inputs=X_train.shape[1]
 
 logger.info("Defining Feed Forward")
 model = Sequential()
-model.add(Dense(batch_size, input_dim=num_inputs, kernel_initializer='normal', activation='sigmoid'))
-model.add(Dense(batch_size, kernel_initializer='normal', activation='sigmoid'))
+model.add(Dense(batch_size, input_dim=num_inputs, kernel_initializer='normal', activation='relu'))
+model.add(Dense(batch_size, kernel_initializer='normal', activation='relu'))
 model.add(Dense(num_outputs, kernel_initializer='normal'))
 # Compile model
 model.compile(optimizer='rmsprop', loss='mse')
