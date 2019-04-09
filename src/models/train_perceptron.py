@@ -86,7 +86,7 @@ val_target.set_index("card_id", inplace=True)
 X_val = val_feats.values
 y_val = val_target.values.reshape(-1)
 
-recorder.log(__name__, model, X_val, y_val)
+recorder.log("Perceptron", model, X_val, y_val)
 
 # del val_feats, val_target
 ########################### Prediction Cycle ###########################
