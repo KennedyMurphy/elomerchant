@@ -15,9 +15,8 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 data_dir = "data/processed/"
 
 # Define arguments to be passed to model
-epochs=50
+epochs=100
 batch_size=64
-learning_rate=0.01
 num_outputs=1
 num_features=100
 hidden_layers=2
