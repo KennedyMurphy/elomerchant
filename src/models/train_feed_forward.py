@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import logging
 import gc
+import src.features.outlier_correction as oc
 from src.models import record_model
 from src.features import build_features
 from keras.models import Sequential
@@ -20,6 +21,7 @@ batch_size=64
 num_outputs=1
 num_features=100
 hidden_layers=2
+n_sd = 4
 
 metrics = {'MAE': mean_absolute_error, "MSE": mean_squared_error}
 
@@ -41,6 +43,19 @@ train_target = pd.read_csv(f"{data_dir}train_target.csv")
 
 train_feats.set_index("card_id", inplace=True)
 train_target.set_index("card_id", inplace=True)
+
+logger.info("Flagging training set outliers")
+outliers = oc.flag_normal_outliers(train_target, n_sd)
+
+if outliers.values.any():
+    logger.info(f"Flagged {outliers.values.sum()} of {len(outliers)} training observation as outliers. Dropping.")
+
+    outliers = outliers.values.reshape(-1)
+    train_feats = train_feats[~outliers]
+    train_target = train_target[~outliers]
+
+del outliers
+gc.collect()
 
 logger.info("Creating input matrices")
 X_train = train_feats.values
