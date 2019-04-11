@@ -15,15 +15,16 @@ class ModelRecord():
         self.batch_size = batch_size
         self.epochs = epochs
 
-    def log(self, name,  model, X_val, y_val):
+    def log(self, name,  model, X_val, y_val, pred_file):
         """ Logs the performance of the model against 
             the validation set observations along with
             model parameters.
 
-            :param name:    Name of the model
-            :param model:   Keras object
-            :param X_val:   numpy input matrix to the model
-            :param y_val:   numpy array of target values
+            :param name:        Name of the model
+            :param model:       Keras object
+            :param X_val:       numpy input matrix to the model
+            :param y_val:       numpy array of target values
+            :param pred_file:   File path to save validation predictions
         """
 
         record = {
@@ -33,6 +34,12 @@ class ModelRecord():
 
         # Create predictions
         y_pred = model.predict(X_val, batch_size=self.batch_size)
+
+        if pred_file is not None:
+            temp = pd.DataFrame({"target": y_val, "prediction": y_pred})
+            temp.to_csv(pred_file, index=False)
+
+            del temp
 
         # Calculate each metric
         for key, val in self.metrics.items():
