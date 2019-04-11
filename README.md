@@ -12,11 +12,22 @@ Installs the required python libraries.
 
 `make data`
 ------------
-First, installs the required python libraries for this project. Then uses the [kaggle](https://github.com/Kaggle/kaggle-api) API to pull rerequired data sets and save them to the directory `data/raw/`.
+Before running `make data`, make sure that the required data sets for this competition are installed in `data/raw` using [kaggle](https://github.com/Kaggle/kaggle-api) API. 
 
-`make database`
-------------
-Populates a Postgresql data base with the data pulled via the `make data` command. For more info on Python3 and Postgresql, read this [Code Mentor Post](https://www.codementor.io/engineerapart/getting-started-with-postgresql-on-mac-osx-are8jcopb). For info on how to import CSVs to Postgresql, read this [Postgresql Tutorial](http://www.postgresqltutorial.com/import-csv-file-into-posgresql-table/). The assumption is that there already is an empty database with an appropriate user setup prior to running this command. 
+Once data sets are downloaded, `make data` can be run. Unsurprisingly, blindly using [Featuretools](https://docs.featuretools.com/) to generate model features does not provide great results. The shotgun approach to Featuretools does not seem appropriate for this competition given that the dataset is sensitive to the selection of features amongst other things (see [this kaggle discussion](https://www.kaggle.com/c/elo-merchant-category-recommendation/discussion/75935#latest-476146)).
+
+With that in mind, `make data` generates 8 kinds of datasets as outlined by one of the [top 10 participant(s) of the competition](https://www.kaggle.com/c/elo-merchant-category-recommendation/discussion/82055#latest-483943):
+
+```
+1. Only historical data
+2. Only historical data with authorized_flag=1
+3. Only new data
+4. Merge of historical data with authorized_flag=1 and new data
+5. Merge of historical data and new data
+6. Merge of historical data and merchants data
+7. Merge of new data and merchants data
+8. Merge of historical data and new data and merchants data
+```
 
 Project Organization
 ==============================
