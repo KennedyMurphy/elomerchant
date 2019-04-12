@@ -19,7 +19,7 @@ from sklearn.feature_selection import RFE
 data_dir = "data/processed/"
 
 # Define arguments to be passed to model
-epochs=50
+epochs=100
 batch_size=64
 learning_rate=0.01
 num_outputs=1
@@ -86,7 +86,7 @@ val_target.set_index("card_id", inplace=True)
 X_val = val_feats.values
 y_val = val_target.values.reshape(-1)
 
-recorder.log("Perceptron", model, X_val, y_val)
+recorder.log("Perceptron", model, X_val, y_val, "data/processed/PerceptronValidation.csv")
 
 # del val_feats, val_target
 ########################### Prediction Cycle ###########################
