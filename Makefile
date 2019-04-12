@@ -27,11 +27,7 @@ requirements: test_environment
 
 ## Make Dataset
 data: requirements
-	kaggle competitions download -c elo-merchant-category-recommendation -p data/raw/
-
-## Make Database
-database:
-	$(PYTHON_INTERPRETER) src/data/make_database.py
+	$(PYTHON_INTERPRETER) src/data/make_dataset.py
 
 ## Delete all compiled Python files
 clean:
