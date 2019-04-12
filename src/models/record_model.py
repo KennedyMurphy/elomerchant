@@ -33,7 +33,7 @@ class ModelRecord():
             "time": datetime.datetime.now()}
 
         # Create predictions
-        y_pred = model.predict(X_val, batch_size=self.batch_size)
+        y_pred = model.predict(X_val, batch_size=self.batch_size).reshape(-1)
 
         if pred_file is not None:
             temp = pd.DataFrame({"target": y_val, "prediction": y_pred})
