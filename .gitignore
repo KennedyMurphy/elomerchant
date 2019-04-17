@@ -84,3 +84,7 @@ target/
 # vim
 *.swp
 *.swo
+
+# MLFLOW
+mlruns/*
+mlruns/
