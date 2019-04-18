@@ -14,7 +14,7 @@ def summarise_purchase_amount(df, prefix):
         column.
 
         :param df:      Pandas data frame.
-        :param prefic:  Prefix to append to each columns
+        :param prefix:  Prefix to append to each columns
 
         :return:        Summarized purchase data.
     """
@@ -36,6 +36,52 @@ def summarise_purchase_amount(df, prefix):
     gc.collect()
 
     return df
+
+
+def summarise_purchase_frequency(df, prefix):
+    """ Summarises the time aspect of purchases
+        for each card id in the provided data frame. 
+        Adds the prefix to each column.
+
+        :param df:      Pandas data frame
+        :param prefix:  Prefix to append to each columns
+
+        :return:        Summarized purchase time data.
+    """
+
+    logger = logging.getLogger(__name__)
+
+    assert "card_id" in df.columns
+    assert "purchase_date" in df.columns
+    assert "purchase_amount" in df.columns
+
+    logger.debug(f"Summarizing {prefix} daily purchases")
+    dates = df.groupby(
+        ['card_id', pd.Grouper(key='purchase_date', freq='d')]).purchase_amount.agg(['sum', 'count'])
+    
+    dates = dates.groupby("card_id")[['sum', 'count']].mean()
+
+    dates.rename(columns={
+        "sum": f"{prefix}_avg_daily_purchase", 
+        "count": f"{prefix}_avg_daily_transactions"}, inplace=True)
+
+    logger.debug(f"Summarizing {prefix} transaction frequencies.")
+    df['time_since'] = df.groupby('card_id').purchase_date.diff()
+    df['time_since'] = df.time_since.values /  np.timedelta64(1, 'h')  # Convert to hours
+
+    df = df.groupby('card_id').time_since.agg(['mean', 'std'])
+
+    df.rename(columns={
+        "mean": f"{prefix}_avg_transaction_freq", 
+        "std": f"{prefix}_std_transaction_freq"}, inplace=True)
+
+    logger.debug(f"Combining {prefix} daily purchases and transaction frequencies.")
+
+    dates = dates.merge(df, on='card_id')
+
+    gc.collect()
+
+    return dates
 
 
 def parse_transactions(input_file, output_file):
@@ -118,6 +164,15 @@ def parse_transactions(input_file, output_file):
             feats = feats.merge(temp, on='card_id', how='outer')
             del temp
             gc.collect()
+
+    logger.info("Generating transaction time features")
+    temp = summarise_purchase_frequency(
+        df=df[['card_id', 'purchase_date', 'purchase_amount']],
+        prefix=prefix)
+    
+    feats = feats.merge(temp, on='card_id', how='left')
+    del temp
+    gc.collect()
 
     logger.info("Filling missing values")
     feats.fillna(0, inplace=True)
@@ -210,8 +265,8 @@ def main():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
 
-    # parse_transactions("historical_transactions.csv", "historical_transactions.csv")
-    # parse_transactions("new_merchant_transactions.csv", "new_merchant_transactions.csv")
+    parse_transactions("historical_transactions.csv", "historical_transactions.csv")
+    parse_transactions("new_merchant_transactions.csv", "new_merchant_transactions.csv")
 
     train_validation_split(0.2)
     
