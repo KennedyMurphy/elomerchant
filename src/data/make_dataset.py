@@ -72,8 +72,8 @@ def summarise_purchase_frequency(df, prefix):
     df = df.groupby('card_id').time_since.agg(['mean', 'std'])
 
     df.rename(columns={
-        "mean": f"{prefix}_avg_transaction_freq", 
-        "std": f"{prefix}_std_transaction_freq"}, inplace=True)
+        "mean": f"{prefix}avg_transaction_freq", 
+        "std": f"{prefix}std_transaction_freq"}, inplace=True)
 
     logger.debug(f"Combining {prefix} daily purchases and transaction frequencies.")
 
