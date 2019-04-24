@@ -62,8 +62,8 @@ def summarise_purchase_frequency(df, prefix):
     dates = dates.groupby("card_id")[['sum', 'count']].mean()
 
     dates.rename(columns={
-        "sum": f"{prefix}_avg_daily_purchase", 
-        "count": f"{prefix}_avg_daily_transactions"}, inplace=True)
+        "sum": f"{prefix}avg_daily_purchase", 
+        "count": f"{prefix}avg_daily_transactions"}, inplace=True)
 
     logger.debug(f"Summarizing {prefix} transaction frequencies.")
     df['time_since'] = df.groupby('card_id').purchase_date.diff()
@@ -155,6 +155,8 @@ def parse_transactions(input_file, output_file):
     for i in range(3):
         vals = df[f"category_{i+1}"].unique()
         for v in vals:
+            if v is np.nan:
+                continue
             logger.debug(f"Feature set dimensions: {feats.shape}")
             logger.info(f"Generating category {i+1} == {v} purchase summary")
             temp = summarise_purchase_amount(
