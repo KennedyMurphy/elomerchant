@@ -152,20 +152,20 @@ def parse_transactions(input_file, output_file):
     del temp
     gc.collect()
 
-    for i in range(3):
-        vals = df[f"category_{i+1}"].unique()
-        for v in vals:
-            if v is np.nan:
-                continue
-            logger.debug(f"Feature set dimensions: {feats.shape}")
-            logger.info(f"Generating category {i+1} == {v} purchase summary")
-            temp = summarise_purchase_amount(
-                    df=df[df[f"category_{i+1}"] == v][['card_id', 'purchase_amount']],
-                    prefix=f'{prefix}category{i+1}{v}_authorized_')
+    # for i in range(3):
+    #     vals = df[f"category_{i+1}"].unique()
+    #     for v in vals:
+    #         if v is np.nan:
+    #             continue
+    #         logger.debug(f"Feature set dimensions: {feats.shape}")
+    #         logger.info(f"Generating category {i+1} == {v} purchase summary")
+    #         temp = summarise_purchase_amount(
+    #                 df=df[df[f"category_{i+1}"] == v][['card_id', 'purchase_amount']],
+    #                 prefix=f'{prefix}category{i+1}{v}_authorized_')
             
-            feats = feats.merge(temp, on='card_id', how='outer')
-            del temp
-            gc.collect()
+    #         feats = feats.merge(temp, on='card_id', how='outer')
+    #         del temp
+    #         gc.collect()
 
     logger.info("Generating transaction time features")
     temp = summarise_purchase_frequency(
