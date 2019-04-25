@@ -133,6 +133,9 @@ def parse_transactions(input_file, output_file):
     logger.info("Casting date values to datetime")
     df['purchase_date'] = pd.to_datetime(df['purchase_date'])
 
+    logger.info("Normalizing purchase amount")
+    df['purchase_amount'] = np.log(df['purchase_amount'] + np.abs(df.purchase_amount.min()) + 1)
+
     # Sort values based on date.
     df.sort_values('purchase_date', inplace=True)
     # Convert authorized flag to int
