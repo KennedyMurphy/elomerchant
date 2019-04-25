@@ -3,6 +3,7 @@ import logging
 import pandas as pd
 import numpy as np
 import gc
+import src.features.outlier_correction as oc
 import src.features.build_features as feats
 from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
@@ -26,7 +27,10 @@ def summarise_purchase_amount(df, prefix):
 
     logger.debug(f"Summarizing {prefix} purchases")
     df = df.groupby('card_id').purchase_amount.agg(
-        {'sum', 'std', 'min', 'max', 'mean'})
+        ['sum'])
+
+    logger.info(f"Standardizing {prefix} purchase totals")
+    df['sum'] = (df['sum'] - df['sum'].mean()) / df['sum'].std()
     
     logger.debug(f"Renaming {prefix} columns")
     rename_dict = {c: prefix+c for c in df.columns}
@@ -133,8 +137,9 @@ def parse_transactions(input_file, output_file):
     logger.info("Casting date values to datetime")
     df['purchase_date'] = pd.to_datetime(df['purchase_date'])
 
-    logger.info("Normalizing purchase amount")
-    df['purchase_amount'] = np.log(df['purchase_amount'] + np.abs(df.purchase_amount.min()) + 1)
+    logger.info("Correcting outliers in purchase amounts")
+    # Outliers are beyond 4 standard deviations
+    df['purchase_amount'] = oc.correct_normal_outliers(df['purchase_amount'].copy(), 4)    
 
     # Sort values based on date.
     df.sort_values('purchase_date', inplace=True)
