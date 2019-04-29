@@ -88,6 +88,54 @@ def summarise_purchase_frequency(df, prefix):
     return dates
 
 
+def summarise_merchant_category(df, prefix, category):
+    """ Summarises the number of transactions and average
+        transaction for a category in historical/new transaction
+        data.
+
+        :param df:          Pandas data frame
+        :param prefix:      Prefix to append to each columns
+        :param category:    Category column name in data frame
+
+        :return:        Summarized purchase time data.
+    """
+
+    logger = logging.getLogger(__name__)
+
+    assert "card_id" in df.columns
+    assert "purchase_amount" in df.columns
+    assert category in df.columns
+
+    # Drop NA values
+    df = df[~df[category].isnull()]
+
+    if len(df) == 0:
+        raise Exception(f"No non-null values in {category}")
+
+    logger.info(f"Counting number of {category} transactions")
+    count_df = df.groupby(['card_id', category]).purchase_amount.count().unstack()
+    count_df.rename(
+        columns={c: f"{prefix}{category}_{c}_count" for c in count_df.columns},
+        inplace=True)
+
+    logger.info(f"Summing number of {category} transactins")
+    sum_df = df.groupby(['card_id', category]).purchase_amount.sum()
+
+    m, sd = df.purchase_amount.agg(['mean', 'std'])
+    sum_df['purchase_amount'] = (df['purchase_amount'] - m) / sd
+    sum_df = sum_df.unstack()
+    sum_df.rename(
+        columns={c: f"{prefix}{category}_{c}_sum" for c in sum_df.columns},
+        inplace=True)
+
+    # Combine two data sets
+    count_df = count_df.merge(sum_df, on='card_id')
+
+    del m, sd, sum_df
+    gc.collect()
+
+    return count_df
+
 def parse_transactions(input_file, output_file):
     """ Parses historical or new transaction data found in the
         input_filepath and saves the result to the output filepath.
@@ -160,20 +208,18 @@ def parse_transactions(input_file, output_file):
     del temp
     gc.collect()
 
-    # for i in range(3):
-    #     vals = df[f"category_{i+1}"].unique()
-    #     for v in vals:
-    #         if v is np.nan:
-    #             continue
-    #         logger.debug(f"Feature set dimensions: {feats.shape}")
-    #         logger.info(f"Generating category {i+1} == {v} purchase summary")
-    #         temp = summarise_purchase_amount(
-    #                 df=df[df[f"category_{i+1}"] == v][['card_id', 'purchase_amount']],
-    #                 prefix=f'{prefix}category{i+1}{v}_authorized_')
-            
-    #         feats = feats.merge(temp, on='card_id', how='outer')
-    #         del temp
-    #         gc.collect()
+    for i in range(3):
+        logger.info(f"Generating category {i+1} features")
+
+        temp = summarise_merchant_category(
+            df=df[['card_id', 'purchase_amount', f'category_{i+1}']].copy(),
+            prefix=prefix,
+            category=f"category_{i+1}")
+        
+        feats = feats.merge(temp, on='card_id', how='left')
+
+        del temp
+        gc.collect()
 
     logger.info("Generating transaction time features")
     temp = summarise_purchase_frequency(
