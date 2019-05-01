@@ -220,6 +220,16 @@ def parse_transactions(input_file, output_file):
 
         del temp
         gc.collect()
+    
+    logger.info("Genearting month lag features")
+    temp = summarise_merchant_category(
+            df=df[['card_id', 'purchase_amount', 'month_lag']].copy(),
+            prefix=prefix,
+            category='month_lag')
+
+    feats = feats.merge(temp, on='card_id', how='left')
+    del temp
+    gc.collect()
 
     logger.info("Generating transaction time features")
     temp = summarise_purchase_frequency(
