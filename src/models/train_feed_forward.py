@@ -9,32 +9,8 @@ import mlflow
 import src.features.outlier_correction as oc
 from src.features import build_features
 from src.models import feed_forward
+from src.models import metric_calculation
 from pathlib import Path
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-
-def calculate_error(y_val, y_pred):
-    """ Calculates the MAE and MSE for the provided target and prediction
-        values.
-        
-        :param y_val:   Numpy array of target values
-        :param y_pred:  Numpy array of prediction values
-
-        :return:        dict of metrics keyed by metric names
-
-    """
-
-    metrics = {
-        "mae": mean_absolute_error, 
-        "mse": mean_squared_error,
-        "r2_score": r2_score
-        }
-
-    res = {}
-
-    for key, func in metrics.items():
-        res = {**res, key: func(y_val, y_pred)}
-    
-    return res
 
 
 def train_ffnn(data_dir, drop_outliers, model_name, layers, optim_type, loss_type, batch_size, epochs):
@@ -127,7 +103,7 @@ def train_ffnn(data_dir, drop_outliers, model_name, layers, optim_type, loss_typ
             mlflow.log_param(f"layer{i+1}_activation", layers[i][2])
 
         logger.debug("Logging MLFLOW metrics")
-        metrics = calculate_error(y_val, y_pred)
+        metrics = metric_calculation.calculate_error(y_val, y_pred)
         for key, val in metrics.items():
             mlflow.log_metric(key, val)
         
@@ -188,6 +164,32 @@ def main():
         data_dir=data_dir,
         drop_outliers=False,
         model_name="FFNN",
+        layers=layers,
+        optim_type=optim_type,
+        loss_type=loss_type,
+        batch_size=batch_size,
+        epochs=epochs)
+
+    ########################### Single Layer Perceptron ###########################
+    layers = [(64, 'normal', 'linear')]
+
+    ########################### Outlier free model ###########################
+    train_ffnn(
+        data_dir=data_dir,
+        drop_outliers=True,
+        model_name="Outlier Free Perceptron",
+        layers=layers,
+        optim_type=optim_type,
+        loss_type=loss_type,
+        batch_size=batch_size,
+        epochs=epochs)
+
+    
+    ########################### Outlier included model ###########################
+    train_ffnn(
+        data_dir=data_dir,
+        drop_outliers=False,
+        model_name="Perceptron",
         layers=layers,
         optim_type=optim_type,
         loss_type=loss_type,
