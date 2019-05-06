@@ -148,30 +148,32 @@ def main():
     layers = [(64, 'normal', 'relu'), (10, 'normal', 'relu')]
 
     ########################### Outlier free model ###########################
-    train_ffnn(
-        data_dir=data_dir,
-        drop_outliers=True,
-        model_name="Outlier Free FFNN",
-        layers=layers,
-        optim_type=optim_type,
-        loss_type=loss_type,
-        batch_size=batch_size,
-        epochs=epochs)
+    # train_ffnn(
+    #     data_dir=data_dir,
+    #     drop_outliers=True,
+    #     model_name="Outlier Free FFNN",
+    #     layers=layers,
+    #     optim_type=optim_type,
+    #     loss_type=loss_type,
+    #     batch_size=batch_size,
+    #     epochs=epochs)
 
     
-    ########################### Outlier included model ###########################
-    train_ffnn(
-        data_dir=data_dir,
-        drop_outliers=False,
-        model_name="FFNN",
-        layers=layers,
-        optim_type=optim_type,
-        loss_type=loss_type,
-        batch_size=batch_size,
-        epochs=epochs)
+    # ########################### Outlier included model ###########################
+    # train_ffnn(
+    #     data_dir=data_dir,
+    #     drop_outliers=False,
+    #     model_name="FFNN",
+    #     layers=layers,
+    #     optim_type=optim_type,
+    #     loss_type=loss_type,
+    #     batch_size=batch_size,
+    #     epochs=epochs)
 
     ########################### Single Layer Perceptron ###########################
-    layers = [(64, 'normal', 'linear')]
+    optim_type = 'adam'
+    loss_type = 'mse'
+    layers = [(64, 'normal', 'relu')]
 
     ########################### Outlier free model ###########################
     train_ffnn(
