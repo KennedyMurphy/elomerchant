@@ -27,10 +27,10 @@ def summarise_purchase_amount(df, prefix):
 
     logger.debug(f"Summarizing {prefix} purchases")
     df = df.groupby('card_id').purchase_amount.agg(
-        ['sum'])
+        ['sum', 'mean', 'std'])
 
-    logger.info(f"Standardizing {prefix} purchase totals")
-    df['sum'] = (df['sum'] - df['sum'].mean()) / df['sum'].std()
+    # logger.info(f"Standardizing {prefix} purchase totals")
+    # df['sum'] = (df['sum'] - df['sum'].mean()) / df['sum'].std()
     
     logger.debug(f"Renaming {prefix} columns")
     rename_dict = {c: prefix+c for c in df.columns}
@@ -112,29 +112,20 @@ def summarise_merchant_category(df, prefix, category):
     if len(df) == 0:
         raise Exception(f"No non-null values in {category}")
 
-    logger.info(f"Counting number of {category} transactions")
-    count_df = df.groupby(['card_id', category]).purchase_amount.count().unstack()
-    count_df.rename(
-        columns={c: f"{prefix}{category}_{c}_count" for c in count_df.columns},
+    logger.info(f"Summarizing {category} transactions")
+    df[category] = df[category].astype(str)
+    cat_feats = df.groupby(['card_id', category]).purchase_amount.agg(
+        ['sum', 'mean', 'std', 'count'])
+
+    cat_feats = cat_feats.unstack()
+    cat_feats.columns = ['_'.join(col) for col in cat_feats.columns.values]
+    cat_feats.rename(
+        columns={c: f"{prefix}{category}_{c}" for c in cat_feats.columns},
         inplace=True)
-
-    logger.info(f"Summing number of {category} transactins")
-    sum_df = df.groupby(['card_id', category]).purchase_amount.sum()
-
-    m, sd = df.purchase_amount.agg(['mean', 'std'])
-    sum_df['purchase_amount'] = (df['purchase_amount'] - m) / sd
-    sum_df = sum_df.unstack()
-    sum_df.rename(
-        columns={c: f"{prefix}{category}_{c}_sum" for c in sum_df.columns},
-        inplace=True)
-
-    # Combine two data sets
-    count_df = count_df.merge(sum_df, on='card_id')
-
-    del m, sd, sum_df
+    
     gc.collect()
 
-    return count_df
+    return cat_feats
 
 def parse_transactions(input_file, output_file):
     """ Parses historical or new transaction data found in the
@@ -302,6 +293,7 @@ def train_validation_split(valprop = 0.2):
     test_target.fillna(0, inplace=True)
 
     train_ids = train_target.index.values
+    np.random.seed(42)
     validation_ids = np.random.choice(train_ids, int(len(train_target) * valprop))
 
     logger.info(f"Selecting {len(validation_ids)} of {len(train_ids)} training " +
