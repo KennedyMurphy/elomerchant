@@ -141,7 +141,7 @@ pyasn1==0.4.4
 pycadf==2.9.0
 pycodestyle==2.3.1
 pyflakes==1.6.0
-Pygments==2.2.0
+Pygments==2.7.4
 pylint==2.1.1
 pyparsing==2.2.0
 python-dateutil==2.7.3
