@@ -36,7 +36,7 @@ docker-pycreds==0.4.0
 docutils==0.14
 dogpile.cache==0.6.8
 entrypoints==0.2.3
-eventlet==0.24.1
+eventlet==0.31.0
 extras==1.0.0
 fasteners==0.14.1
 featuretools==0.6.0
